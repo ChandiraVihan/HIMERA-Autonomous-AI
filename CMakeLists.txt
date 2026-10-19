@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(HimeraAutonomousAI VERSION 0.3.0 LANGUAGES CXX)
+project(HimeraAutonomousAI VERSION 0.4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,4 +47,13 @@ if(BUILD_TESTING AND Python3_Interpreter_FOUND)
     add_test(NAME VisualSimulatorFunctionalTests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/visual_sim_tests.py"
         "$<TARGET_FILE:himera_sim>")
+endif()
+
+# v0.4: deterministic, source-based comparison against documented simple baselines.
+add_executable(himera_evaluate evaluation/evaluate.cpp)
+target_link_libraries(himera_evaluate PRIVATE himera_ai)
+if(BUILD_TESTING AND Python3_Interpreter_FOUND)
+    add_test(NAME EvaluationReproducibility
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/evaluation/test_evaluation.py"
+        "$<TARGET_FILE:himera_evaluate>" "${CMAKE_CURRENT_SOURCE_DIR}/evaluation/make_report.py")
 endif()
