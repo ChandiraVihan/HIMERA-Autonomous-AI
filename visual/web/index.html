@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HIMERA // Autonomous Systems Lab</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="ambient-glow"></div>
+  <div class="application">
+    <header class="topbar">
+      <div class="brand"><div class="symbol"><span>H</span></div><div><div class="brand-title">HIMERA <span class="brand-subtitle">/ AI LAB</span></div><div class="brand-caption">K-47 AUTONOMOUS SYSTEMS • TEST ENVIRONMENT</div></div></div>
+      <div class="top-meta"><span class="status"><i></i><span id="connection">CONNECTING TO C++ ENGINE</span></span><span class="top-separator"></span><span class="mono" id="tickTop">TICK 000</span><button class="icon-button" id="resetBtn" title="Reset the scenario" aria-label="Reset the scenario"><svg viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 0 3-6.7L3 7m0-5v5h5"/></svg></button></div>
+    </header>
+
+    <section class="page-intro"><div><div class="eyebrow">RESEARCH COMPLEX K-47 <span class="slashes">//</span> EXPERIMENT 01</div><h1>Autonomous Agent <span>Simulation</span></h1><p>Test four independent C++ decision systems inside a shared, dynamic environment. Interact with the map to observe real-time planning and adaptation.</p></div><div class="intro-right"><div class="live-pill"><span class="dot"></span> LOCAL SIMULATION</div><div class="version-label">BUILD 0.2.0 / BLUEPRINT-READY ARCHITECTURE</div></div></section>
+
+    <div class="content-grid">
+      <main class="center-column">
+        <section class="panel map-panel">
+          <div class="panel-heading"><div><div class="section-overline">01 / SPATIAL OVERVIEW</div><h2>Containment Sector <span class="dim">— A7</span></h2></div><div class="map-modes"><button type="button" class="mode active" data-view="path">Trooper route</button><button type="button" class="mode" data-view="belief">Hollow belief</button></div></div>
+          <div class="map-utility"><span><span class="pulse-dot"></span> LIVE GRID <b>20 × 12</b></span><span>CLICK A FLOOR TILE TO MOVE PLAYER</span><span id="mapState">DOOR / OPEN</span></div>
+          <div class="map-viewport" id="mapViewport"><div class="map-surface"><div id="mapGrid" class="map-grid" role="group" aria-label="Interactive facility grid"></div><svg class="route-layer" id="routeLayer" viewBox="0 0 20 12" preserveAspectRatio="none" aria-hidden="true"><polyline id="routeLine" points=""/></svg><div class="grid-label grid-label-top">SECURITY GRID / 2D SCHEMATIC</div><div class="grid-label grid-label-bottom">NAV SYSTEM: D* LITE / ACTIVE</div></div></div>
+          <div class="map-footer"><div class="legend"><span><i class="legend-dot player-color"></i>PLAYER</span><span><i class="legend-dot security-color"></i>SECURITY</span><span><i class="legend-dot hollow-color"></i>HOLLOW</span><span><i class="legend-dot trooper-color"></i>TROOPER</span><span><i class="legend-wall"></i>WALL</span><span><i class="legend-door"></i>DOOR</span></div><div class="hoverinfo mono" id="hoverInfo">X — / Y —</div></div>
+        </section>
+
+        <section class="panel controls-panel"><div class="panel-heading compact"><div><div class="section-overline">02 / MANUAL OVERRIDE</div><h2>Scenario Controls</h2></div><span class="key-hint">SIMULATED TIME: <b id="simTime">0 S</b></span></div><div class="control-grid"><button class="action primary-action" id="stepBtn"><span class="action-icon">▶</span><span><strong>Advance 5 seconds</strong><small>Update all AI agents</small></span></button><button class="action" id="gunshotBtn"><span class="action-icon">◎</span><span><strong>Fire gunshot</strong><small>Trigger sound tracking</small></span></button><button class="action" id="spotBtn"><span class="action-icon">◉</span><span><strong>Spot player</strong><small>Trigger Security GOAP</small></span></button><button class="action" id="doorBtn"><span class="action-icon">▣</span><span><strong id="doorBtnText">Close door</strong><small>Trigger D* Lite replan</small></span></button></div><div class="control-bottom"><button type="button" class="autoplay" id="autoplayBtn"><span class="auto-icon">▶</span> Auto advance <span id="autoStatus">OFF</span></button><span class="control-advice" id="controlAdvice">Tip: Close the door to see D* Lite choose a longer route.</span></div></section>
+
+        <section class="panel telemetry-panel"><div class="panel-heading compact"><div><div class="section-overline">03 / SYSTEM EVENTS</div><h2>Event Log</h2></div><span class="mono smallest">LATEST FIRST</span></div><div class="event-log" id="eventLog" aria-live="polite"></div></section>
+      </main>
+
+      <aside class="right-column">
+        <section class="panel agents-panel"><div class="panel-heading compact"><div><div class="section-overline">LIVE INFERENCE</div><h2>Agent Telemetry</h2></div><div class="engine-badge">4 <span>ACTIVE</span></div></div>
+          <article class="agent-card"><div class="agent-head"><div class="agent-id"><div class="agent-emblem security-color">S</div><div><h3>Facility Security</h3><span>GOAL-ORIENTED ACTION PLANNING</span></div></div><span class="agent-tag">GOAP</span></div><div class="agent-main-label">NEXT PLANNED ACTION</div><div class="agent-large" id="goapAction">PatrolSector</div><div class="plan-list" id="goapPlan"></div><div class="agent-footer"><span>SEARCH COST <b id="goapCost">—</b></span><span>STATES EXPANDED <b id="goapExpanded">—</b></span></div></article>
+          <article class="agent-card"><div class="agent-head"><div class="agent-id"><div class="agent-emblem hollow-color">H</div><div><h3>The Hollow</h3><span>PROBABILISTIC TARGET TRACKING</span></div></div><span class="agent-tag">BELIEF</span></div><div class="duo"><div><div class="agent-main-label">HIGHEST-VALUE SEARCH TILE</div><div class="agent-large" id="hollowTarget">—</div></div><div><div class="agent-main-label">CURRENT LOCATION</div><div class="agent-medium" id="hollowLocation">—</div></div></div><div class="agent-helper">Press <b>Fire gunshot</b> then switch to Hollow belief to see the probability distribution.</div></article>
+          <article class="agent-card"><div class="agent-head"><div class="agent-id"><div class="agent-emblem trooper-color">T</div><div><h3>Containment Trooper</h3><span>INCREMENTAL DYNAMIC PATHFINDING</span></div></div><span class="agent-tag">D* LITE</span></div><div class="trooper-metrics"><div><div class="metric-number" id="pathLen">—</div><div class="agent-main-label">PATH CELLS</div></div><div><div class="metric-number" id="pathExpanded">—</div><div class="agent-main-label">LAST REPAIR EXPANSIONS</div></div></div><div class="agent-helper" id="trooperState">Observing navigation graph...</div></article>
+          <article class="agent-card last-agent"><div class="agent-head"><div class="agent-id"><div class="agent-emblem director-color">D</div><div><h3>HIM-7 Director</h3><span>ADAPTIVE UTILITY DECISIONS</span></div></div><span class="agent-tag">UTILITY</span></div><div class="agent-main-label">PREFERRED NEXT EVENT</div><div class="agent-large director-answer" id="directorChoice">—</div><div id="utilityBars" class="utility-bars"></div></article>
+        </section>
+      </aside>
+      <aside class="left-column">
+        <section class="panel operator-panel"><div class="panel-heading compact"><div><div class="section-overline">PLAYER VARIABLES</div><h2>Experiment Inputs</h2></div></div><p class="sidebar-note">Change inputs to see the Director's next decision. Values are used by the native C++ algorithm.</p>
+          <div class="slider-group"><div class="slider-head"><label for="healthSlider">Health</label><strong id="healthValue">85%</strong></div><input id="healthSlider" type="range" min="0" max="100" step="5" data-setting="health" /><div class="range-foot"><span>CRITICAL</span><span>HEALTHY</span></div></div>
+          <div class="slider-group"><div class="slider-head"><label for="ammoSlider">Ammunition</label><strong id="ammoValue">18</strong></div><input id="ammoSlider" type="range" min="0" max="40" step="1" data-setting="ammo" /><div class="range-foot"><span>EMPTY</span><span>FULL</span></div></div>
+          <div class="slider-group"><div class="slider-head"><label for="exposureSlider">HIM-7 Exposure</label><strong id="exposureValue">68%</strong></div><input id="exposureSlider" type="range" min="0" max="100" step="5" data-setting="exposure" /><div class="range-foot"><span>CLEAR</span><span>SEVERE</span></div></div>
+          <div class="slider-group"><div class="slider-head"><label for="stressSlider">Stress Level</label><strong id="stressValue">48%</strong></div><input id="stressSlider" type="range" min="0" max="100" step="5" data-setting="stress" /><div class="range-foot"><span>CALM</span><span>PANIC</span></div></div>
+          <div class="safe-zone"><div><strong>Safe Zone</strong><small>Blocks aggressive encounter events</small></div><label class="switch"><input id="safeToggle" type="checkbox" /><span class="track"></span></label></div>
+          <div class="note-box"><span>ⓘ</span><p>Each simulation step advances <b>5 seconds</b>. Agent movement is grid-based, not a 3D Unreal animation.</p></div>
+        </section>
+        <section class="panel guide-panel"><div class="section-overline">QUICK START</div><h2>Try these experiments</h2><ol><li><b>Close door</b> — watch the orange route detour.</li><li><b>Fire gunshot</b> — reveal the Hollow's estimated search area.</li><li><b>Spot player</b> — watch Security switch to a tactical action plan.</li><li><b>Lower health</b> — observe the Director's wave restriction.</li></ol></section>
+      </aside>
+    </div>
+    <footer class="footer"><span>HIMERA · INTELLIGENT SYSTEMS RESEARCH PROTOTYPE</span><span>C++20 CORE <span class="small-slash">/</span> PYTHON BRIDGE <span class="small-slash">/</span> BROWSER UI</span><span>NOT AN UNREAL ENGINE RUNTIME</span></footer>
+  </div>
+  <div class="toast" id="toast" role="alert"></div>
+</body>
+</html>

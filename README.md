@@ -1,8 +1,24 @@
-# HIMERA Autonomous Agents (Standalone C++ Prototype)
+# HIMERA Autonomous Agents + Visual Simulator (C++ Prototypes)
 
 Advanced autonomous decision systems for **HIMERA**, the psychological horror FPS set in fictional Research Complex K-47. This repository focuses on the **SE3062 Intelligent Systems** assignment. The Unreal Engine 5 gameplay project remains separate at this stage.
 
-> **Current status:** First **standalone tested C++ prototypes**. These are algorithm demonstrations, not playable NPCs, not finished production AI, and not yet exposed to Blueprints.
+> **Current status:** Tested standalone C++ prototypes plus a working browser-based 2D scenario simulator. The simulator is not yet an Unreal Engine game, and the agents are not yet exposed to Blueprints.
+
+## NEW: Interactive 2D agent simulator (v0.2)
+
+![Himera AI simulator screenshot](docs/images/visual_simulator_preview.png)
+
+The repository now includes an interactive **browser-based visual lab**, powered by the **existing C++ algorithms** rather than rewriting them in JavaScript. It displays the Trooper's D* Lite route, the Hollow's search probability, Security's GOAP sequence, and the HIM-7 Director's utility scores. You can close a door, fire a gunshot, reveal the player, adjust health/ammo/exposure/stress, move the player by clicking, and advance simulation time.
+
+**Windows (VS Code supported; install MSYS2 UCRT64 GCC/CMake/Ninja/Python, no Visual Studio IDE required):**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\visual\START_WINDOWS.ps1
+```
+
+**Manual start (after building CMake):** `py -3 visual/server.py` (Windows) or `python3 visual/server.py` (Linux/macOS), then open **http://127.0.0.1:8765**.
+
+Read [docs/VISUAL_SIMULATOR.md](docs/VISUAL_SIMULATOR.md) for full installation, experiment steps, constraints and architecture. The Visual Simulator is a **standalone 2D lab, not an Unreal preview**.
 
 ## The four independently owned agents
 
@@ -18,12 +34,39 @@ Advanced autonomous decision systems for **HIMERA**, the psychological horror FP
 ## Requirements
 
 - CMake 3.20 or later
-- A C++20 compiler (Visual Studio 2022 on Windows, Clang on macOS, GCC/Clang on Linux)
-- No third-party libraries
+- A C++20 compiler (MSYS2 UCRT64 GCC or Visual Studio C++ Build Tools on Windows; Clang on macOS; GCC/Clang on Linux)
+- No third-party libraries for native C++ code; the visual simulator additionally needs Python 3.9+ (standard library only)
 
 ## Build and run
 
-### Windows (PowerShell, with Visual Studio C++ build tools installed)
+### Windows + VS Code (recommended: MSYS2 UCRT64, no Visual Studio installation)
+
+1. Install [MSYS2](https://www.msys2.org/) into the default `C:\msys64` path.
+2. Open **MSYS2 UCRT64** (not MSYS, MinGW64, or CLANG64).
+3. Run `pacman -Syu` and restart the UCRT64 terminal if requested.
+4. Install tools (in MSYS2 UCRT64):
+
+   ```bash
+   pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-python
+   ```
+
+5. Open this repository in **VS Code → Terminal → New Terminal → PowerShell**. Run:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\visual\START_WINDOWS.ps1
+   ```
+
+The launcher discovers MSYS2 GCC, uses **Ninja** and an isolated `build-vscode` directory, and launches the browser at http://127.0.0.1:8765. MSYS2 C++ toolchain DLLs are supplied to the simulator process via PATH. To run the tests, use: 
+
+```powershell
+& "C:\msys64\ucrt64\bin\ctest.exe" --test-dir build-vscode --output-on-failure
+```
+
+If MSYS2 is installed outside `C:\msys64`, set `$env:MSYS2_ROOT` to that install directory before launching.
+
+### Windows + Visual Studio C++ Build Tools (alternative)
+
+The same launcher also supports Visual Studio 2022 C++ Build Tools if MSYS2 is absent. The full Visual Studio IDE is not needed. Manual build commands:
 
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64
@@ -42,6 +85,14 @@ ctest --test-dir build --output-on-failure
 ./build/himera_demo
 ./build/himera_benchmark
 ```
+
+### Visual simulator after building
+
+```powershell
+py -3 visual/server.py
+```
+
+The local web UI opens automatically. Use the `START_WINDOWS.ps1` launcher for a one-command build + launch.
 
 ## Standalone benchmark
 

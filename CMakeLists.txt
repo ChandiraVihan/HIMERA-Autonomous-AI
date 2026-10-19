@@ -30,3 +30,21 @@ if(BUILD_TESTING)
     target_link_libraries(himera_tests PRIVATE himera_ai)
     add_test(NAME AgentsUnitTests COMMAND himera_tests)
 endif()
+
+# Interactive browser simulator: the local Python bridge talks to this
+# persistent executable. All four decisions come from the existing C++ library.
+add_executable(himera_sim visual/simulator.cpp)
+target_link_libraries(himera_sim PRIVATE himera_ai)
+if(BUILD_TESTING)
+    add_test(NAME SimulatorSmokeTest COMMAND ${CMAKE_COMMAND}
+        -DPROGRAM=$<TARGET_FILE:himera_sim>
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/simulator_smoke.cmake)
+endif()
+
+# Python is optional for the algorithms, but the visual server needs it.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(BUILD_TESTING AND Python3_Interpreter_FOUND)
+    add_test(NAME VisualSimulatorFunctionalTests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/visual_sim_tests.py"
+        "$<TARGET_FILE:himera_sim>")
+endif()
