@@ -34,7 +34,8 @@ function render(){
   if(!current)return;
   setText('tickTop',`TICK ${String(current.tick).padStart(3,'0')}`);
   setText('simTime',`${current.tick*5} S`);
-  setText('mapState',`DOOR / ${current.world.doorOpen?'OPEN':'CLOSED'}`);
+  setText('mapState',`DOOR / ${current.world.doorOpen?'OPEN':'CLOSED'} · SPILL / ${current.world.hazardOn?'ON':'OFF'}`);
+  setText('hazardBtnText',current.world.hazardOn?'Clear chemical spill':'Activate chemical spill');
   setText('doorBtnText',current.world.doorOpen?'Close door':'Open door');
   setText('controlAdvice',current.lastEvent);
   renderMap(); renderTelemetry();renderInputs();renderEvents();
@@ -50,15 +51,15 @@ function renderMap(){
   let best=Math.max(...belief,0.00001);
   for(let y=0;y<world.height;y++)for(let x=0;x<world.width;x++){
     const cell=document.createElement('div');
-    const wall=world.rows[y][x]==='#';const door=x===world.door[0]&&y===world.door[1];
-    cell.className=`tile ${wall?'wall':'floor'}${door?' door '+(world.doorOpen?'open':'closed'):''}`;
+    const wall=world.rows[y][x]==='#';const door=x===world.door[0]&&y===world.door[1];const hazard=x===world.hazard[0]&&y===world.hazard[1]&&world.hazardOn;
+    cell.className=`tile ${wall?'wall':'floor'}${door?' door '+(world.doorOpen?'open':'closed'):''}${hazard?' hazard':''}`;
     const prob=belief[y*world.width+x];
     if(view==='belief'&&!wall){const strength=Math.sqrt(prob/best);cell.style.setProperty('--heat',`rgba(217,76,115,${Math.max(0.015,Math.min(.77,strength*.72))})`);}
     const key=`${x},${y}`;
     const at=groups.get(key);
     if(at){const sym=document.createElement('div');sym.className=`agent-symbol ${at[0].className}`;sym.textContent=at[0].id;
       if(at.length>1){sym.dataset.stack=`+${at.length-1}`;sym.title=at.map(a=>a.title).join(', ');}cell.append(sym);}
-    cell.title=`(${x}, ${y}) · ${wall?'Wall':door?'Containment door':'Floor'}${view==='belief'?` · ${(prob*100).toFixed(1)}% belief`:''}`;
+    cell.title=`(${x}, ${y}) · ${wall?'Wall':door?'Containment door':hazard?'Chemical spill':'Floor'}${view==='belief'?` · ${(prob*100).toFixed(1)}% belief`:''}`;
     cell.addEventListener('mouseenter',()=>setText('hoverInfo',`X ${String(x).padStart(2,'0')} / Y ${String(y).padStart(2,'0')}${view==='belief'?` · ${(prob*100).toFixed(2)}%`:''}`));
     if(!wall)cell.addEventListener('click',()=>request(`PLAYER ${x} ${y}`));
     fragment.append(cell);
@@ -72,7 +73,8 @@ function renderMap(){
 }
 function renderTelemetry(){
   const {securityAI, director, hollowTarget, hollow, trooperPath,trooperExpansions}=current;
-  setText('goapAction',securityAI.steps[0]||'Goal achieved / observe');
+  setText('goapAction',securityAI.lastAction||'Observe');
+  setText('securityStatus',`Guard HP ${Math.round(securityAI.health*100)}% · Ammo ${securityAI.ammo} · Target ${securityAI.knowsTarget?'CONFIRMED':'UNKNOWN'}`);
   setText('goapCost',securityAI.planCost.toFixed(1));
   setText('goapExpanded',securityAI.expanded);
   const plan=$('goapPlan');plan.replaceChildren();
@@ -84,6 +86,7 @@ function renderTelemetry(){
   setText('pathLen',trooperPath.length||'NO PATH');setText('pathExpanded',trooperExpansions);
   setText('trooperState',trooperPath.length>0?'Orange dashed line = planned D* Lite route. Toggle the door to compare.':'Goal unreachable. Open the door or move the player.');
   setText('directorChoice',director.chosen);
+  setText('directorWaveCount',`${current.state.activeHollows} active Hollow wave(s) · ${Math.round(current.state.cooldown)} s since last wave`);
   const bars=$('utilityBars');bars.replaceChildren();
   for(const sc of director.scores){
     const el=document.createElement('div');el.className=`utility-row${sc.allowed?'':' blocked'}`;el.title=sc.reason;
@@ -95,12 +98,12 @@ function renderTelemetry(){
 }
 function renderInputs(){
   const state=current.state;
-  const vals={health:Math.round(state.health*100),ammo:state.ammo,exposure:Math.round(state.exposure*100),stress:Math.round(state.stress*100)};
+  const vals={health:Math.round(state.health*100),ammo:state.ammo,exposure:Math.round(state.exposure*100),stress:Math.round(state.stress*100),securityHealth:Math.round(current.securityAI.health*100),securityAmmo:current.securityAI.ammo};
   for(const [key,value] of Object.entries(vals)){
     const input=$(`${key}Slider`);
     if(document.activeElement!==input)input.value=value;
     input.style.setProperty('--range',`${((Number(input.value)-Number(input.min))/(Number(input.max)-Number(input.min)))*100}%`);
-    setText(`${key}Value`,key==='ammo'?value:`${value}%`);
+    setText(`${key}Value`,key.toLowerCase().includes('ammo')?value:`${value}%`);
   }
   $('safeToggle').checked=state.safeZone;
 }
@@ -124,12 +127,14 @@ $('stepBtn').addEventListener('click',()=>request('STEP'));
 $('gunshotBtn').addEventListener('click',()=>request('GUNSHOT'));
 $('spotBtn').addEventListener('click',()=>request('SPOT'));
 $('doorBtn').addEventListener('click',()=>request('DOOR'));
+$('hazardBtn').addEventListener('click',()=>request('HAZARD'));
+$('lostBtn').addEventListener('click',()=>request('LOST'));
 $('resetBtn').addEventListener('click',()=>{stopAuto();request('RESET');});
 $('autoplayBtn').addEventListener('click',toggleAuto);
 $('safeToggle').addEventListener('change',event=>request(`SAFE ${event.target.checked?1:0}`));
 for(const input of document.querySelectorAll('input[type="range"]')){
-  input.addEventListener('input',()=>{const value=Number(input.value);setText(`${input.dataset.setting}Value`,input.dataset.setting==='ammo'?value:`${value}%`);input.style.setProperty('--range',`${(value/Number(input.max))*100}%`);});
-  input.addEventListener('change',()=>{const key=input.dataset.setting;const val=key==='ammo'?Number(input.value):Number(input.value)/100;request(`SET ${key} ${val}`);});
+  input.addEventListener('input',()=>{const value=Number(input.value);setText(`${input.dataset.setting}Value`,input.dataset.setting.toLowerCase().includes('ammo')?value:`${value}%`);input.style.setProperty('--range',`${(value/Number(input.max))*100}%`);});
+  input.addEventListener('change',()=>{const key=input.dataset.setting;const val=key.toLowerCase().includes('ammo')?Number(input.value):Number(input.value)/100;request(`SET ${key} ${val}`);});
 }
 for(const button of document.querySelectorAll('.mode')){
   button.addEventListener('click',()=>{view=button.dataset.view;document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('active',b===button));renderMap();});

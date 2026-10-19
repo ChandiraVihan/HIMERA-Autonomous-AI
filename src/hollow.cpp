@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <queue>
 #include <stdexcept>
 
 namespace himera {
@@ -46,6 +47,30 @@ void HollowBeliefAgent::hear(Point origin, double sigma, double confidence) {
     }
     normalize();
 }
+void HollowBeliefAgent::setBlocked(Point cell, bool blocked) {
+    if (!grid_.inside(cell)) throw std::out_of_range("Changed cell outside map");
+    bool wasBlocked = grid_.blocked(cell);
+    if (wasBlocked == blocked) return;
+    const int id = grid_.id(cell);
+    double lost = blocked ? belief_[id] : 0.0;
+    grid_.setBlocked(cell, blocked);
+    belief_[id] = 0.0;
+    if (blocked && lost > 0.0) {
+        // Spread eliminated probability across remaining walkable cells, rather
+        // than resetting the entire posterior to a uniform prior.
+        double remaining = std::accumulate(belief_.begin(), belief_.end(), 0.0);
+        if (remaining > 1e-12) {
+            for (double& v : belief_) v += v / remaining * lost;
+        } else {
+            int count = 0;
+            for (int i = 0; i < grid_.count(); ++i) if (grid_.walkable(grid_.point(i))) ++count;
+            if (count == 0) throw std::runtime_error("No walkable cells after topology change");
+            for (int i = 0; i < grid_.count(); ++i)
+                if (grid_.walkable(grid_.point(i))) belief_[i] = 1.0 / count;
+        }
+    }
+    normalize();
+}
 void HollowBeliefAgent::seePlayer(Point player) {
     if (!grid_.walkable(player)) throw std::invalid_argument("Observed player in blocked cell");
     std::fill(belief_.begin(), belief_.end(), 0.0);
@@ -61,11 +86,24 @@ Point HollowBeliefAgent::selectSearchCell(Point self, const std::vector<Point>& 
     if (!grid_.walkable(self)) throw std::invalid_argument("Hollow position must be walkable");
     Point chosen = self;
     double best = -std::numeric_limits<double>::infinity();
+    std::vector<int> distance(grid_.count(), -1);
+    std::queue<Point> bfs;
+    distance[grid_.id(self)] = 0;
+    bfs.push(self);
+    while (!bfs.empty()) {
+        Point at = bfs.front(); bfs.pop();
+        for (Point next : grid_.neighbors(at)) {
+            const int id = grid_.id(next);
+            if (distance[id] >= 0) continue;
+            distance[id] = distance[grid_.id(at)] + 1;
+            bfs.push(next);
+        }
+    }
     for (int i = 0; i < grid_.count(); ++i) {
         Point p = grid_.point(i);
-        if (!grid_.walkable(p)) continue;
-        // Posterior belief, distance and risk; nearby allies reduce duplicate searches.
-        double score = belief_[i] / (1.0 + 0.08 * manhattan(self, p)) / (1.0 + grid_.risk(p));
+        if (!grid_.walkable(p) || distance[i] < 0) continue;
+        // Posterior belief, actual walkable travel distance and risk.
+        double score = belief_[i] / (1.0 + 0.08 * distance[i]) / (1.0 + grid_.risk(p));
         for (Point ally : allyTargets)
             if (manhattan(p, ally) <= 1) score *= 0.05;
         if (score > best) { best = score; chosen = p; }
