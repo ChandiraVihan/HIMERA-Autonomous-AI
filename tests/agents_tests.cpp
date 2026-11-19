@@ -72,6 +72,42 @@ int main() {
         Plan p = s.plan(bit(Fact::HeardSound));
         require(p.achieved && !p.steps.empty() && p.steps[0] == "InvestigateSound", "Wrong sound plan");
     });
+    test("GOAP hearing does not grant impossible target knowledge", [] {
+        SecurityGoapAgent s;
+        Facts state=bit(Fact::HeardSound);
+        auto p=s.plan(state);
+        require(p.steps.size()==1 && p.steps.front()=="InvestigateSound", "Expected investigation");
+        state=s.apply(state,p.steps.front());
+        require(!has(state,Fact::KnowsTarget), "Sound knowledge should not imply direct line of sight");
+    });
+    test("GOAP low-health priority overrides attacking", [] {
+        SecurityGoapAgent s;
+        Facts state=bit(Fact::LowHealth)|bit(Fact::KnowsTarget)|bit(Fact::UnderFire);
+        auto p=s.plan(state);
+        require(p.achieved && !p.steps.empty() && p.steps.front()=="Retreat", "Low health should trigger retreat");
+        state=s.apply(state,"Retreat");
+        require(has(state,Fact::Retreated),"Retreat did not update goal state");
+    });
+    test("Hollow retains learned belief when door topology changes", [] {
+        Grid g(6,3);
+        HollowBeliefAgent h(g);
+        h.hear({5,1},0.8,0.97);
+        double before=h.probability({5,1});
+        h.setBlocked({2,1},true);
+        require(h.probability({2,1})==0,"Blocked door still has probability mass");
+        require(h.probability({5,1})>=before*0.95,"Posterior reset after a door was blocked");
+        require(std::abs(h.totalProbability()-1.0)<1e-9,"Lost probability mass");
+        h.setBlocked({2,1},false);
+        require(std::abs(h.totalProbability()-1.0)<1e-9,"Reopened cell broke normalization");
+    });
+    test("Hollow search target is reachable around sealed corridors", [] {
+        Grid g(6,3);
+        for (int y=0;y<3;++y)g.setBlocked({2,y},true);
+        HollowBeliefAgent h(g);
+        h.hear({5,1},.65,.999);
+        Point target=h.selectSearchCell({0,1});
+        require(target.x<2,"Selected unreachable target across a sealed wall");
+    });
     test("GOAP patrol fallback and invalid action", [] {
         SecurityGoapAgent s;
         require(s.plan(0).steps.front() == "PatrolSector", "Missing fallback");

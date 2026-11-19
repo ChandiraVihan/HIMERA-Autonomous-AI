@@ -64,6 +64,51 @@ class SimulatorChecks(unittest.TestCase):
         self.assertFalse(next(v for v in s['director']['scores'] if v['name'] == 'VisualDistortion')['allowed'])
         self.assertTrue(s['state']['safeZone'])
 
+    def test_sound_does_not_magically_reveal_player(self):
+        s = self.action('GUNSHOT')
+        self.assertEqual(s['securityAI']['steps'], ['InvestigateSound'])
+        for _ in range(12):
+            s = self.action('STEP')
+        self.assertFalse(s['securityAI']['knowsTarget'])
+        self.assertNotEqual(s['securityAI']['lastAction'], 'SuppressTarget')
+
+    def test_dynamic_hazard_changes_route_without_blocking_floor(self):
+        before = self.initial
+        hazard = before['world']['hazard']
+        self.assertIn(hazard, before['trooperPath'])
+        during = self.action('HAZARD')
+        self.assertTrue(during['world']['hazardOn'])
+        self.assertNotIn(hazard, during['trooperPath'])
+        self.assertEqual(during['world']['rows'][hazard[1]][hazard[0]], '.')
+        after = self.action('HAZARD')
+        self.assertIn(hazard, after['trooperPath'])
+
+    def test_hollow_belief_survives_door_changes(self):
+        self.action('GUNSHOT')
+        before = self.action('STEP')
+        self.assertGreater(before['belief'][7*20+16], 0.01)
+        blocked = self.action('DOOR')
+        self.assertAlmostEqual(sum(blocked['belief']), 1, places=3)
+        self.assertGreater(blocked['belief'][7*20+16], 0.01)
+        self.assertEqual(blocked['belief'][5*20+9],0)
+
+    def test_guard_retreats_at_low_health_and_loses_target(self):
+        s = self.action('SPOT')
+        self.assertTrue(s['securityAI']['knowsTarget'])
+        s = self.action('SET securityHealth 0.2')
+        self.assertEqual(s['securityAI']['steps'][0], 'Retreat')
+        s = self.action('LOST')
+        self.assertFalse(s['securityAI']['knowsTarget'])
+        self.assertEqual(s['securityAI']['steps'][0], 'Retreat')
+
+    def test_wave_lifecycle_expires_and_can_spawn_again(self):
+        s=self.action('STEP')
+        self.assertGreater(s['state']['activeHollows'],0)
+        for _ in range(7):
+            s=self.action('STEP')
+        self.assertLessEqual(s['state']['activeHollows'],1)
+        self.assertTrue(any('dissipated' in entry for entry in s['history']))
+
     def test_invalid_does_not_mutate_state(self):
         bad = self.action('PLAYER 0 0')
         self.assertFalse(bad['ok'])

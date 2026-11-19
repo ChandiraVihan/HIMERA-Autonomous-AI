@@ -14,8 +14,9 @@ SecurityGoapAgent::SecurityGoapAgent() : actions_({
     {"SuppressTarget", bit(Fact::KnowsTarget) | bit(Fact::HasAmmo) | bit(Fact::Aimed),
         bit(Fact::TargetSuppressed), bit(Fact::TargetSuppressed), bit(Fact::HasAmmo), 2.0},
     {"InvestigateSound", bit(Fact::HeardSound), bit(Fact::SoundInvestigated),
-        bit(Fact::SoundInvestigated) | bit(Fact::KnowsTarget), bit(Fact::HeardSound), 1.5},
-    {"PatrolSector", 0, bit(Fact::Patrolled), bit(Fact::Patrolled), 0, 1.0}
+        bit(Fact::SoundInvestigated), bit(Fact::HeardSound), 1.5},
+    {"PatrolSector", 0, bit(Fact::Patrolled), bit(Fact::Patrolled), 0, 1.0},
+    {"Retreat", bit(Fact::LowHealth), bit(Fact::Retreated), bit(Fact::Retreated) | bit(Fact::InCover), bit(Fact::UnderFire), 0.8}
 }) {}
 
 double SecurityGoapAgent::actionCost(const GoapAction& a, Facts s) {
@@ -29,6 +30,7 @@ double SecurityGoapAgent::actionCost(const GoapAction& a, Facts s) {
 }
 
 Plan SecurityGoapAgent::plan(Facts initial) const {
+    if (has(initial, Fact::LowHealth)) return planTo(initial, Fact::Retreated);
     if (has(initial, Fact::KnowsTarget)) return planTo(initial, Fact::TargetSuppressed);
     if (has(initial, Fact::HeardSound)) return planTo(initial, Fact::SoundInvestigated);
     return planTo(initial, Fact::Patrolled);

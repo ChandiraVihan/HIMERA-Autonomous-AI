@@ -14,7 +14,9 @@ enum class Fact : std::uint32_t {
     TargetSuppressed = 1u << 5,
     HeardSound = 1u << 6,
     SoundInvestigated = 1u << 7,
-    Patrolled = 1u << 8
+    Patrolled = 1u << 8,
+    LowHealth = 1u << 9,
+    Retreated = 1u << 10
 };
 using Facts = std::uint32_t;
 constexpr Facts bit(Fact f) { return static_cast<Facts>(f); }

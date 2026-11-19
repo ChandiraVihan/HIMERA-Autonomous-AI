@@ -20,8 +20,8 @@ import webbrowser
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "visual" / "web"
 ALLOWED = re.compile(
-    r"(?:RESET|STEP|GUNSHOT|SPOT|DOOR|SAFE [01]|PLAYER \d{1,2} \d{1,2}|"
-    r"SET (?:health|exposure|stress|ammo) (?:\d{1,3}(?:\.\d{1,4})?|\.\d{1,4}))\Z"
+    r"(?:RESET|STEP|GUNSHOT|SPOT|LOST|DOOR|HAZARD|SAFE [01]|PLAYER \d{1,2} \d{1,2}|"
+    r"SET (?:health|exposure|stress|ammo|securityHealth|securityAmmo) (?:\d{1,3}(?:\.\d{1,4})?|\.\d{1,4}))\Z"
 )
 
 
